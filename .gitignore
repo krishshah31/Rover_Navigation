@@ -1,0 +1,14 @@
+# Ignore ROS2 build artifacts
+build/
+install/
+log/
+
+# Ignore editor files
+.vscode/
+.idea/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+src/ros2_roboclaw_driver/

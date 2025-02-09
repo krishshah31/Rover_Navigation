@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+    <gazebo reference="base_link">
+        <material>
+            Gazebo/Blue
+        </material>
+    </gazebo>
+    <gazebo refernce="right_wheel_link">
+        <material>
+            Gazebo/Green
+        </material>
+    </gazebo>
+    <gazebo refernce="left_wheel_link">
+        <material>
+            Gazebo/Green
+        </material>    
+    </gazebo>
+
+    <gazebo reference="platform_link">
+        <material>Gazebo/White</material>
+    </gazebo>
+
+    <gazebo reference="horizontal_gps_stand">
+        <material>Gazebo/White</material>
+    </gazebo>
+    
+    <gazebo reference="vertical_gps_stand">
+        <material>Gazebo/White</material>
+    </gazebo>
+
+    <gazebo reference="lidar_front">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+
+    <gazebo reference="lidar_back">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+
+    <gazebo reference="camera_front">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+
+    <gazebo reference="camera_back">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+
+    <gazebo reference="gps_antena">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+
+    <gazebo reference="lte_antena">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="jetson">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="emergency_stop">
+        <material>Gazebo/Purple</material>
+    </gazebo>
+    
+    <!-- <gazebo>
+        <plugin name="diff_drive_controller" filename="libgazebo_ros_diff_drive.so"> -->
+            <!-- Update rate in Hz -->
+            <!-- <update_rate>50</update_rate> -->
+      
+            <!-- wheels -->
+            <!-- <left_joint>base_left_front_wheel_joint</left_joint>
+            <left_joint>base_left_back_wheel_joint</left_joint>
+            <right_joint>base_right_front_wheel_joint</right_joint>
+            <right_joint>base_right_back_wheel_joint</right_joint>
+       -->
+            <!-- kinematics -->
+            <!-- <wheel_separation>0.52</wheel_separation>
+            <wheel_diameter>1.7</wheel_diameter> -->
+
+            <!-- <max_wheel_torque>20</max_wheel_torque> -->
+      
+            <!-- output -->
+            <!-- <publish_odom>true</publish_odom>
+            <publish_odom_tf>true</publish_odom_tf>
+            <publish_wheel_tf>true</publish_wheel_tf>
+      
+            <odometry_topic>odom</odometry_topic>
+            <odometry_frame>odom</odometry_frame>
+            <robot_base_frame>base_footprint</robot_base_frame>
+      
+        </plugin>
+    </gazebo> -->
+
+    <gazebo>
+     <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+       <updateRate>100.0</updateRate>
+       <robotNamespace>/</robotNamespace>
+       <leftFrontJoint>base_left_front_wheel_joint</leftFrontJoint>
+       <rightFrontJoint>base_right_front_wheel_joint</rightFrontJoint>
+       <leftRearJoint>base_left_back_wheel_joint</leftRearJoint>
+       <rightRearJoint>base_right_back_wheel_joint</rightRearJoint>
+       <wheelSeparation>0.52</wheelSeparation>
+       <wheelDiameter>0.125</wheelDiameter>
+       <robotBaseFrame>base_footprint</robotBaseFrame>
+       <torque>20</torque>
+       <topicName>cmd_vel</topicName>
+       <broadcastTF>false</broadcastTF>
+  </plugin>
+</gazebo>
+
+</robot>
