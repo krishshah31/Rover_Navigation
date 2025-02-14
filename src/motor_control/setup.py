@@ -24,7 +24,7 @@ setup(
             'motor_command_publisher = motor_control.motor_command_publisher:main',
             'keyboard_control = motor_control.keyboard_control:main',
             'RoboClawCmdVelNode = motor_control.RoboClawCmdVelNode:main',
-            'odometry_node = motor_control.odometry_node:main',
+            'safety_stop_node = motor_control.safety_stop_node:main',
         ],
     },
 )

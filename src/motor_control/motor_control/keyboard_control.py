@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -9,12 +8,11 @@ import tty
 class KeyboardControlNode(Node):
     def __init__(self):
         super().__init__('keyboard_control_node')
-        self.publisher_ = self.create_publisher(String, 'motor_command', 10)
-        self.get_logger().info('Keyboard Control Node Initialized')
-        self.run()
+        self.publisher = self.create_publisher(String, 'motor_command', 10)
+        self.get_logger().info("Keyboard control node started. Use arrow keys to move, 's' to stop, and 'q' to quit.")
 
     def get_key(self):
-        """Capture a single key press."""
+        """Reads a single character from terminal input without pressing Enter."""
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -25,39 +23,46 @@ class KeyboardControlNode(Node):
         return key
 
     def run(self):
-        """Capture keyboard inputs and publish commands."""
-        self.get_logger().info("Use W/A/S/D to control the rover. Space to stop. Q to quit.")
+        """Continuously read key presses and send commands."""
         while rclpy.ok():
             key = self.get_key()
-            command = None
+            msg = String()
 
-            if key.lower() == 'w':
-                command = "FORWARD"
-            elif key.lower() == 's':
-                command = "BACKWARD"
-            elif key.lower() == 'a':
-                command = "LEFT"
-            elif key.lower() == 'd':
-                command = "RIGHT"
-            elif key == 'h':
-                command = "STOP"
-            elif key.lower() == 'q':
+            if key == '\x1b':  # Detecting escape sequences for arrow keys
+                key += self.get_key()
+                key += self.get_key()
+
+            if key == '\x1b[A':  # Up arrow key
+                msg.data = "FORWARD 30 30"
+            elif key == '\x1b[B':  # Down arrow key
+                msg.data = "BACKWARD 30 30"
+            elif key == '\x1b[D':  # Left arrow key
+                msg.data = "LEFT 30 30"
+            elif key == '\x1b[C':  # Right arrow key
+                msg.data = "RIGHT 30 30"
+            elif key == 's':  # 's' key for stop
+                msg.data = "STOP 0 0"
+            elif key == 'r':  # 'r' key for recover mode
+                msg.data = "RECOVER 0 0"
+            elif key == 'q':  # Quit key
                 self.get_logger().info("Exiting keyboard control.")
                 break
+            else:
+                continue  # Ignore other keys
 
-            if command:
-                msg = String()
-                msg.data = command
-                self.publisher_.publish(msg)
-                self.get_logger().info(f'Published command: {command}')
-
+            self.publisher.publish(msg)
+            self.get_logger().info(f"Sent command: {msg.data}")
 
 def main(args=None):
     rclpy.init(args=args)
-    node = KeyboardControlNode()
-    node.destroy_node()
-    rclpy.shutdown()
-
+    keyboard_control_node = KeyboardControlNode()
+    try:
+        keyboard_control_node.run()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        keyboard_control_node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

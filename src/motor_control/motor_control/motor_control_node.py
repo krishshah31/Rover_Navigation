@@ -1,45 +1,41 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 import serial
-import struct
-import time
+from time import time
 
-
-# Define the Roboclaw class
 class Roboclaw:
-
     class Cmd:
-            """Command Enums"""
-            M1FORWARD = 0
-            M1BACKWARD = 1
-            M2FORWARD = 4
-            M2BACKWARD = 5
-            GETVERSION = 21
-            RESETENC = 20
-            GETM1ENC = 16
-            GETM2ENC = 17
-            GETM1SPEED = 18
-            GETM2SPEED = 19
-            SETM1PID = 28
-            SETM2PID = 29
-            READM1PID = 55
-            READM2PID = 56
-            M1DUTY = 32
-            M2DUTY = 33
-            MIXEDDUTY = 34
-            M1SPEED = 35
-            M2SPEED = 36
-            MIXEDSPEED = 37
-            M1SPEEDACCEL = 38
-            M2SPEEDACCEL = 39
-            MIXEDSPEEDACCEL = 40
-            M1SPEEDDIST = 41
-            M2SPEEDDIST = 42
-            MIXEDSPEEDDIST = 43
-            GETMBATT = 24
-            GETLBATT = 25
-            GETCURRENTS = 49
+        """Command Enums"""
+        M1FORWARD = 0
+        M1BACKWARD = 1
+        M2FORWARD = 4
+        M2BACKWARD = 5
+        GETVERSION = 21
+        RESETENC = 20
+        GETM1ENC = 16
+        GETM2ENC = 17
+        GETM1SPEED = 18
+        GETM2SPEED = 19
+        SETM1PID = 28
+        SETM2PID = 29
+        READM1PID = 55
+        READM2PID = 56
+        M1DUTY = 32
+        M2DUTY = 33
+        MIXEDDUTY = 34
+        M1SPEED = 35
+        M2SPEED = 36
+        MIXEDSPEED = 37
+        M1SPEEDACCEL = 38
+        M2SPEEDACCEL = 39
+        MIXEDSPEEDACCEL = 40
+        M1SPEEDDIST = 41
+        M2SPEEDDIST = 42
+        MIXEDSPEEDDIST = 43
+        GETMBATT = 24
+        GETLBATT = 25
+        GETCURRENTS = 49
 
     def __init__(self, comport, rate, timeout=0.01, retries=3):
         self.comport = comport
@@ -129,90 +125,63 @@ class Roboclaw:
         self.forward_m1(address, 0)
         self.forward_m2(address, 0)
 
-    # def read_encoder_m1(self, address):
-    #     """Read encoder value for Motor 1."""
-    #     self._send_command(address, self.Cmd.GETM1ENC)  # Ensure self.Cmd is used
-    #     data = self._port.read(6)  # 4 bytes for encoder, 2 bytes for CRC
-    #     if len(data) != 6:
-    #         raise Exception("Invalid response length")
-    #     encoder = int.from_bytes(data[0:4], byteorder='big', signed=True)
-    #     crc_received = int.from_bytes(data[4:6], byteorder='big')
-    #     if crc_received != self._crc & 0xFFFF:
-    #         raise Exception("CRC mismatch")
-    #     return encoder
-
-    # def read_encoder_m2(self, address):
-    #     """Read encoder value for Motor 2."""
-    #     self._send_command(address, self.Cmd.GETM2ENC)  # Ensure self.Cmd is used
-    #     data = self._port.read(6)  # 4 bytes for encoder, 2 bytes for CRC
-    #     if len(data) != 6:
-    #         raise Exception("Invalid response length")
-    #     encoder = int.from_bytes(data[0:4], byteorder='big', signed=True)
-    #     crc_received = int.from_bytes(data[4:6], byteorder='big')
-    #     if crc_received != self._crc & 0xFFFF:
-    #         raise Exception("CRC mismatch")
-    #     return encoder
-
-
-
-# Define the ROS2 node
 class MotorControlNode(Node):
     def __init__(self):
         super().__init__('motor_control_node')
-
-        # Initialize the Roboclaw object
         self.roboclaw = Roboclaw('/dev/ttyACM0', 115200)
         self.address = 0x80
-
-        # Create a subscriber to receive movement commands
-        self.subscription = self.create_subscription(
+        self.emergency_stop = False
+        self.recovery_mode = False
+        self.command_subscription = self.create_subscription(
             String,
             'motor_command',
             self.command_callback,
             10
         )
-        self.get_logger().info("Motor control node has been started")
+        self.get_logger().info("Motor control node has started.")
 
     def command_callback(self, msg):
-        command = msg.data.upper()
-        self.get_logger().info(f"Received command: {command}")
+        try:
+            command_parts = msg.data.strip().split()
+            if len(command_parts) < 3:
+                self.get_logger().warning("Invalid command format. Expected format: 'DIRECTION M1_SPEED M2_SPEED'")
+                return
 
-        if command == "FORWARD":
-            self.move_backward()
-        elif command == "BACKWARD":
-            self.move_forward()
-        elif command == "LEFT":
-            self.turn_right()
-        elif command == "RIGHT":
-            self.turn_left()
-        elif command == "STOP":
-            self.stop()
-        else:
-            self.get_logger().warning(f"Unknown command: {command}")
+            direction = command_parts[0].upper()
+            m1_speed = int(command_parts[1])
+            m2_speed = int(command_parts[2])
 
-    def move_forward(self):
-        self.roboclaw.forward_m1(self.address,30)
-        self.roboclaw.forward_m2(self.address, 30)
-        self.get_logger().info("Moving forward")
+            if direction == "RECOVER":
+                self.emergency_stop = False
+                self.recovery_mode = True
+                self.get_logger().info("Recovery mode activated. Commands will now be accepted.")
+                return
 
-    def move_backward(self):
-        self.roboclaw.backward_m1(self.address, 30)
-        self.roboclaw.backward_m2(self.address, 30)
-        self.get_logger().info("Moving backward")
+            if self.emergency_stop and not self.recovery_mode:
+                self.get_logger().warn("Emergency stop active. Ignoring commands.")
+                return
 
-    def turn_left(self):
-        self.roboclaw.forward_m2(self.address, 35)
-        self.roboclaw.backward_m1(self.address, 35)
-        self.get_logger().info("Turning left")
+            self.get_logger().info(f"Received command: {direction}, M1 Speed: {m1_speed}, M2 Speed: {m2_speed}")
 
-    def turn_right(self):
-        self.roboclaw.forward_m1(self.address, 35)
-        self.roboclaw.backward_m2(self.address, 35)
-        self.get_logger().info("Turning right")
-
-    def stop(self):
-        self.roboclaw.stop_motors(self.address)
-        self.get_logger().info("Stopping motors")
+            if direction == "BACKWARD":
+                self.roboclaw.forward_m1(self.address, m1_speed)
+                self.roboclaw.forward_m2(self.address, m2_speed)
+            elif direction == "FORWARD":
+                self.roboclaw.backward_m1(self.address, m1_speed)
+                self.roboclaw.backward_m2(self.address, m2_speed)
+            elif direction == "RIGHT":
+                self.roboclaw.backward_m1(self.address, m1_speed)
+                self.roboclaw.forward_m2(self.address, m2_speed)
+            elif direction == "LEFT":
+                self.roboclaw.forward_m1(self.address, m1_speed)
+                self.roboclaw.backward_m2(self.address, m2_speed)
+            elif direction == "STOP":
+                self.roboclaw.stop_motors(self.address)
+            else:
+                self.get_logger().warning(f"Unknown command: {direction}")
+        
+        except ValueError:
+            self.get_logger().error("Invalid speed values. Please provide numerical speed values for M1 and M2.")
 
 
 def main(args=None):
@@ -221,7 +190,6 @@ def main(args=None):
     rclpy.spin(motor_control_node)
     motor_control_node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

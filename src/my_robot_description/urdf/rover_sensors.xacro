@@ -12,7 +12,7 @@
     </link>
 
 
-    <link name="camera_front">
+    <link name="front_camera">
         <visual>
             <geometry>
                 <box size="0.03 0.16 0.03" />
@@ -67,9 +67,15 @@
 
     <joint name="camera_front_platform_joint" type="fixed">
         <parent link="horizontal_camera_stand" />
-        <child link="camera_front" />
+        <child link="front_camera" />
         <origin xyz="0.075 0 0" rpy="0 0 0"/>
     </joint>
+
+    <!-- <joint name="camera_front_joint" type="fixed">
+        <parent link="front_camera" />
+        <child link="zed_camera_link" />
+        <origin xyz="0.075 0 0" rpy="0 0 0"/>
+    </joint> -->
 
     <joint name="camera_back_platform_joint" type="fixed">
         <parent link="horizontal_camera_stand" />
